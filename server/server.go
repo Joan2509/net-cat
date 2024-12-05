@@ -1,7 +1,9 @@
 package server
 
 import (
+	"fmt"
 	"log"
+	"net"
 	"os"
 )
 
@@ -15,5 +17,26 @@ func newChatServer() *ChatServer {
 		clients:  make(map[*Client]bool),
 		messages: []string{},
 		logFile:  logFile,
+	}
+}
+
+func (s *ChatServer) start(port int) error {
+	var err error
+	s.listener, err = net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return err
+	}
+	defer s.listener.Close()
+
+	log.Printf("Listening on port %d\n", port)
+
+	for {
+		conn, err := s.listener.Accept()
+		if err != nil {
+			log.Println("Error accepting connection:", err)
+			continue
+		}
+
+		go s.handleConnection(conn)
 	}
 }
