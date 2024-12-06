@@ -51,3 +51,19 @@ func (s *ChatServer) logMessage(msg string) {
 	s.logFile.WriteString(msg + "\n")
 	s.logFile.Sync()
 }
+
+func (s *ChatServer) broadcastMessage(msg string, sender *Client) {
+	s.clientsMutex.Lock()
+	defer s.clientsMutex.Unlock()
+
+	for client := range s.clients {
+		if client != sender {
+			select {
+			case client.messages <- msg:
+			default:
+				// If channel is full, remove client
+				delete(s.clients, client)
+			}
+		}
+	}
+}
