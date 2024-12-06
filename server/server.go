@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net"
@@ -66,4 +67,27 @@ func (s *ChatServer) broadcastMessage(msg string, sender *Client) {
 			}
 		}
 	}
+}
+
+func (s *ChatServer) receiveMessages(client *Client) {
+	scanner := bufio.NewScanner(client.conn)
+	for scanner.Scan() {
+		msg := scanner.Text()
+		if msg == "" {
+			continue // Skip empty messages
+		}
+
+		fullMsg := s.formatMessage(fmt.Sprintf("[%s]:%s", client.name, msg))
+		s.broadcastMessage(fullMsg, client)
+		s.logMessage(fullMsg)
+	}
+
+	// Client disconnected
+	s.clientsMutex.Lock()
+	delete(s.clients, client)
+	s.clientsMutex.Unlock()
+
+	disconnectMsg := s.formatMessage(fmt.Sprintf("%s has left our chat...", client.name))
+	s.broadcastMessage(disconnectMsg, nil)
+	s.logMessage(disconnectMsg)
 }
