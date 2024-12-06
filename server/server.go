@@ -91,3 +91,65 @@ func (s *ChatServer) receiveMessages(client *Client) {
 	s.broadcastMessage(disconnectMsg, nil)
 	s.logMessage(disconnectMsg)
 }
+
+func (s *ChatServer) handleConnection(conn net.Conn) {
+	defer conn.Close()
+
+	// Check connection limit
+	s.clientsMutex.Lock()
+	if len(s.clients) >= maxConnections {
+		conn.Write([]byte("Server is full. Try again later.\n"))
+		s.clientsMutex.Unlock()
+		return
+	}
+	s.clientsMutex.Unlock()
+
+	// Send Linux logo and name prompt
+	conn.Write([]byte("Welcome to TCP-Chat!\n"))
+	conn.Write([]byte(linuxLogo + "\n"))
+	conn.Write([]byte("[ENTER YOUR NAME]: "))
+
+	// Get client name
+	scanner := bufio.NewScanner(conn)
+	scanner.Scan()
+	clientName := scanner.Text()
+
+	// Validate name
+	if clientName == "" {
+		conn.Write([]byte("Name cannot be empty. Disconnecting.\n"))
+		return
+	}
+
+	client := &Client{
+		name:     clientName,
+		conn:     conn,
+		messages: make(chan string, 100),
+	}
+
+	s.clientsMutex.Lock()
+	s.clients[client] = true
+	s.clientsMutex.Unlock()
+
+	// Send previous messages to new client
+	for _, msg := range s.messages {
+		conn.Write([]byte(msg + "\n"))
+	}
+
+	// Broadcast new client join
+	joinMsg := s.formatMessage(fmt.Sprintf("%s has joined our chat...", clientName))
+	s.broadcastMessage(joinMsg, client)
+	s.logMessage(joinMsg)
+
+	// Handle client messages
+	go s.receiveMessages(client)
+
+	// Send messages to client
+	for msg := range client.messages {
+		conn.Write([]byte(msg + "\n"))
+	}
+}
+
+func Start(port int) {
+	server := newChatServer()
+	log.Fatal(server.start(port))
+}
