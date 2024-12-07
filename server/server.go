@@ -104,7 +104,7 @@ func (s *ChatServer) handleConnection(conn net.Conn) {
 	}
 	s.clientsMutex.Unlock()
 
-	// Send Linux logo and name prompt
+	// Send welcome message, Linux logo, and name prompt
 	conn.Write([]byte("Welcome to TCP-Chat!\n"))
 	conn.Write([]byte(linuxLogo + "\n"))
 	conn.Write([]byte("[ENTER YOUR NAME]: "))
@@ -126,14 +126,19 @@ func (s *ChatServer) handleConnection(conn net.Conn) {
 		messages: make(chan string, 100),
 	}
 
+	// Add client to the server's client list
 	s.clientsMutex.Lock()
 	s.clients[client] = true
 	s.clientsMutex.Unlock()
 
-	// Send previous messages to new client
+	// Send previous messages to the new client
+	conn.Write([]byte("----- Chat History -----\n"))
+	s.clientsMutex.Lock()
 	for _, msg := range s.messages {
 		conn.Write([]byte(msg + "\n"))
 	}
+	s.clientsMutex.Unlock()
+	conn.Write([]byte("------------------------\n"))
 
 	// Broadcast new client join
 	joinMsg := s.formatMessage(fmt.Sprintf("%s has joined our chat...", clientName))
