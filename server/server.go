@@ -114,11 +114,6 @@ func (s *ChatServer) handleConnection(conn net.Conn) {
 	scanner.Scan()
 	clientName := scanner.Text()
 
-	// Validate name
-	if clientName == "" {
-		conn.Write([]byte("Name cannot be empty. Disconnecting.\n"))
-		return
-	}
 
 	client := &Client{
 		name:     clientName,
