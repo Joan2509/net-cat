@@ -75,13 +75,24 @@ func (s *ChatServer) broadcastMessage(msg string, sender *Client) {
 func (s *ChatServer) receiveMessages(client *Client) {
 	scanner := bufio.NewScanner(client.conn)
 	for scanner.Scan() {
-		msg := scanner.Text()
-		if msg == "" {
+		rawMsg := scanner.Text()
+		if rawMsg == "" {
 			continue // Skip empty messages
 		}
 
-		fullMsg := s.formatMessage(fmt.Sprintf("[%s]:%s", client.name, msg))
+		// Format the message with timestamp and sender's name
+		fullMsg := s.formatMessage(fmt.Sprintf("[%s]:%s", client.name, rawMsg))
+
+		// Clear the raw message from the sender's terminal
+		client.messages <- "\033[1A\033[2K" // ANSI escape codes to move up and clear the line
+
+		// Echo the formatted message back to the sender
+		client.messages <- fullMsg
+
+		// Broadcast the formatted message to all other clients
 		s.broadcastMessage(fullMsg, client)
+
+		// Log the message
 		s.logMessage(fullMsg)
 	}
 
