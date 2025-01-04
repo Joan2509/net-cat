@@ -57,6 +57,9 @@ func (s *ChatServer) broadcastMessage(msg string, sender *Client) {
 	s.clientsMutex.Lock()
 	defer s.clientsMutex.Unlock()
 
+	// Add the message to the chat history
+	s.messages = append(s.messages, msg)
+
 	for client := range s.clients {
 		if client != sender {
 			select {
@@ -113,7 +116,6 @@ func (s *ChatServer) handleConnection(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
 	scanner.Scan()
 	clientName := scanner.Text()
-
 
 	client := &Client{
 		name:     clientName,
