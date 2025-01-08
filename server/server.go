@@ -80,19 +80,30 @@ func (s *ChatServer) receiveMessages(client *Client) {
 			continue // Skip empty messages
 		}
 
-		// Format the message with timestamp and sender's name
+		// Check if the message is a name change command
+		if len(rawMsg) > 6 && rawMsg[:6] == "/name " {
+			newName := rawMsg[6:] // Extract the new name
+			if newName == "" {
+				client.messages <- "Name cannot be empty. Try again."
+				continue
+			}
+
+			// Broadcast the name change
+			oldName := client.name
+			client.name = newName
+			notification := s.formatMessage(fmt.Sprintf("%s changed their name to %s.", oldName, newName))
+			s.broadcastMessage(notification, nil)
+			s.logMessage(notification)
+			continue
+		}
+
 		fullMsg := s.formatMessage(fmt.Sprintf("[%s]:%s", client.name, rawMsg))
 
 		// Clear the raw message from the sender's terminal
 		client.messages <- "\033[1A\033[2K" // ANSI escape codes to move up and clear the line
 
-		// Echo the formatted message back to the sender
 		client.messages <- fullMsg
-
-		// Broadcast the formatted message to all other clients
 		s.broadcastMessage(fullMsg, client)
-
-		// Log the message
 		s.logMessage(fullMsg)
 	}
 
