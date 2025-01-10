@@ -41,4 +41,5 @@ type ChatServer struct {
 	clientsMutex sync.Mutex
 	messages     []string
 	logFile      *os.File
+	storedNames map[string]bool
 }
