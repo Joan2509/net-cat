@@ -18,6 +18,7 @@ func newChatServer() *ChatServer {
 	return &ChatServer{
 		clients:  make(map[*Client]bool),
 		messages: []string{},
+		storedNames: make(map[string]bool),
 		logFile:  logFile,
 	}
 }
@@ -110,6 +111,7 @@ func (s *ChatServer) receiveMessages(client *Client) {
 	// Client disconnected
 	s.clientsMutex.Lock()
 	delete(s.clients, client)
+	delete(s.storedNames, client.name)
 	s.clientsMutex.Unlock()
 
 	disconnectMsg := s.formatMessage(fmt.Sprintf("%s has left our chat...", client.name))
@@ -129,25 +131,41 @@ func (s *ChatServer) handleConnection(conn net.Conn) {
 	}
 	s.clientsMutex.Unlock()
 
-	// Send welcome message, Linux logo, and name prompt
+	// Send welcome message and Linux logo
 	conn.Write([]byte("Welcome to TCP-Chat!\n"))
 	conn.Write([]byte(linuxLogo + "\n"))
-	conn.Write([]byte("[ENTER YOUR NAME]: "))
 
-	// Get client name
+	// Ask for a unique name
 	scanner := bufio.NewScanner(conn)
-	scanner.Scan()
-	clientName := scanner.Text()
+	var clientName string
+	for {
+		conn.Write([]byte("[ENTER YOUR NAME]: "))
+		scanner.Scan()
+		clientName = scanner.Text()
 
+		s.clientsMutex.Lock()
+		_, nameInUse := s.storedNames[clientName]
+		s.clientsMutex.Unlock()
+
+		if clientName == "" {
+			conn.Write([]byte("Name cannot be empty. Please try again.\n"))
+		} else if nameInUse {
+			conn.Write([]byte("Name is already in use. Please choose another name.\n"))
+		} else {
+			break
+		}
+	}
+
+	// Add client to the server's client list
 	client := &Client{
 		name:     clientName,
 		conn:     conn,
 		messages: make(chan string, 100),
 	}
 
-	// Add client to the server's client list
 	s.clientsMutex.Lock()
 	s.clients[client] = true
+	s.storedNames[clientName] = true // Register the client's name
 	s.clientsMutex.Unlock()
 
 	// Send previous messages to the new client
@@ -171,7 +189,18 @@ func (s *ChatServer) handleConnection(conn net.Conn) {
 	for msg := range client.messages {
 		conn.Write([]byte(msg + "\n"))
 	}
+
+	// On disconnect, clean up
+	s.clientsMutex.Lock()
+	delete(s.clients, client)
+	delete(s.storedNames, clientName) // Remove the client's name
+	s.clientsMutex.Unlock()
+
+	disconnectMsg := s.formatMessage(fmt.Sprintf("%s has left our chat...", clientName))
+	s.broadcastMessage(disconnectMsg, nil)
+	s.logMessage(disconnectMsg)
 }
+
 
 func Start(port int) {
 	server := newChatServer()
