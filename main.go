@@ -3,10 +3,22 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 
-	"net-cat/server"
+	"net-cat/utils"
 )
+
+func atoi(s string) int {
+	result := 0
+	for _, char := range s {
+		if char >= '0' && char <= '9' {
+			result = result*10 + int(char-'0')
+		} else {
+			fmt.Println("Invalid character found")
+			return -1
+		}
+	}
+	return result
+}
 
 func main() {
 	defaultPort := 8989
@@ -15,8 +27,8 @@ func main() {
 	case 1:
 		server.Start(defaultPort)
 	case 2:
-		p, err := strconv.Atoi(os.Args[1])
-		if err != nil {
+		p := atoi(os.Args[1])
+		if p < 1024 || p > 49151 {
 			fmt.Println("[USAGE]: ./TCPChat $port")
 			os.Exit(1)
 		}
