@@ -64,7 +64,7 @@ func (s *ChatServer) handleConnection(conn net.Conn) {
 	conn.Write([]byte("------------------------\n"))
 
 	// Broadcast new client join
-	joinMsg := s.formatMessage(fmt.Sprintf("%s has joined our chat...", clientName))
+	joinMsg := fmt.Sprintf("%s has joined our chat...", clientName)
 	s.broadcastMessage(joinMsg, client)
 	s.logMessage(joinMsg)
 
@@ -82,7 +82,7 @@ func (s *ChatServer) handleConnection(conn net.Conn) {
 	delete(s.storedNames, clientName) // Remove the client's name
 	s.clientsMutex.Unlock()
 
-	disconnectMsg := s.formatMessage(fmt.Sprintf("%s has left our chat...", clientName))
+	disconnectMsg := fmt.Sprintf("%s has left our chat...", clientName)
 	s.broadcastMessage(disconnectMsg, nil)
 	s.logMessage(disconnectMsg)
 }

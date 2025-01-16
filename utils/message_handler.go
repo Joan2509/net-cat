@@ -54,7 +54,7 @@ func (s *ChatServer) receiveMessages(client *Client) {
 			// Broadcast the name change
 			oldName := client.name
 			client.name = newName
-			notification := s.formatMessage(fmt.Sprintf("%s changed their name to %s.", oldName, newName))
+			notification := fmt.Sprintf("%s changed their name to %s.", oldName, newName)
 			s.broadcastMessage(notification, nil)
 			s.logMessage(notification)
 			continue
@@ -76,7 +76,7 @@ func (s *ChatServer) receiveMessages(client *Client) {
 	delete(s.storedNames, client.name)
 	s.clientsMutex.Unlock()
 
-	disconnectMsg := s.formatMessage(fmt.Sprintf("%s has left our chat...", client.name))
+	disconnectMsg := fmt.Sprintf("%s has left our chat...", client.name)
 	s.broadcastMessage(disconnectMsg, nil)
 	s.logMessage(disconnectMsg)
 }
