@@ -5,17 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
-	"sync"
 )
-
-type ChatServer struct {
-	listener     net.Listener
-	clients      map[*Client]bool
-	clientsMutex sync.Mutex
-	messages     []string
-	logFile      *os.File
-	storedNames  map[string]bool
-}
 
 func newChatServer() *ChatServer {
 	logFile, err := os.OpenFile("chat.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
@@ -55,4 +45,3 @@ func Start(port int) {
 		go server.handleConnection(conn)
 	}
 }
-

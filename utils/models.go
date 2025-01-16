@@ -2,6 +2,8 @@ package server
 
 import (
 	"net"
+	"os"
+	"sync"
 )
 
 const linuxLogo = `
@@ -23,6 +25,14 @@ _)      \.___.,|     .'
       '-'       '--'
 `
 
+type ChatServer struct {
+	listener     net.Listener
+	clients      map[*Client]bool
+	clientsMutex sync.Mutex
+	messages     []string
+	logFile      *os.File
+	storedNames  map[string]bool
+}
 type Client struct {
 	name     string
 	conn     net.Conn
